@@ -1,4 +1,4 @@
-[span_2](start_span)name: Neural Bridge Scanner - Autonomous Pipeline[span_2](end_span)
+[span_5](start_span)name: Neural Bridge Scanner - Autonomous Pipeline[span_5](end_span)
 
 on:
   workflow_dispatch:
@@ -6,228 +6,121 @@ on:
       scan_type:
         description: 'Type of scan to perform'
         required: false
-        [span_3](start_span)default: 'full'[span_3](end_span)
+        default: 'full'
         type: choice
         options:
-          - [span_4](start_span)full[span_4](end_span)
-          - [span_5](start_span)quick[span_5](end_span)
-          - [span_6](start_span)targeted[span_6](end_span)
-      operator_filter:
-        description: 'Filter by operator (optional)'
-        required: false
-        [span_7](start_span)type: string[span_7](end_span)
+          - [span_6](start_span)full[span_6](end_span)
+          - [span_7](start_span)quick[span_7](end_span)
+          - [span_8](start_span)targeted[span_8](end_span)
   schedule:
-    - [span_8](start_span)cron: '0 */6 * * *'[span_8](end_span)
+    - [span_9](start_span)cron: '0 */6 * * *'[span_9](end_span)
 
 env:
-  [span_9](start_span)RUST_BACKTRACE: 1[span_9](end_span)
-  [span_10](start_span)SCANNER_VERSION: "2.0.0-NEURAL"[span_10](end_span)
+  [span_10](start_span)RUST_BACKTRACE: 1[span_10](end_span)
+  [span_11](start_span)SCANNER_VERSION: "2.0.0-NEURAL"[span_11](end_span)
 
 jobs:
   neural-scan-and-sync:
-    [span_11](start_span)runs-on: ubuntu-latest[span_11](end_span)
-    [span_12](start_span)name: Neural Asset Discovery & Bridge Sync[span_12](end_span)
-    [span_13](start_span)timeout-minutes: 60[span_13](end_span)
+    [span_12](start_span)runs-on: ubuntu-latest[span_12](end_span)
+    [span_13](start_span)name: Neural Asset Discovery & Bridge Sync[span_13](end_span)
+    [span_14](start_span)timeout-minutes: 60[span_14](end_span)
     
     steps:
       - name: 🔄 Checkout Repository
-        [span_14](start_span)uses: actions/checkout@v4[span_14](end_span)
+        [span_15](start_span)uses: actions/checkout@v4[span_15](end_span)
         with:
-          [span_15](start_span)fetch-depth: 1[span_15](end_span)
-          [span_16](start_span)token: ${{ secrets.GITHUB_TOKEN }}[span_16](end_span)
+          [span_16](start_span)fetch-depth: 1[span_16](end_span)
+          [span_17](start_span)token: ${{ secrets.GITHUB_TOKEN }}[span_17](end_span)
       
       - name: 🦀 Install Rust Toolchain
-        [span_17](start_span)uses: dtolnay/rust-toolchain@stable[span_17](end_span)
+        [span_18](start_span)uses: dtolnay/rust-toolchain@stable[span_18](end_span)
         with:
-          [span_18](start_span)components: rustfmt, clippy[span_18](end_span)
+          [span_19](start_span)components: rustfmt, clippy[span_19](end_span)
       
       - name: 💾 Cache Rust Dependencies
-        [span_19](start_span)uses: Swatinem/rust-cache@v2[span_19](end_span)
+        [span_20](start_span)uses: Swatinem/rust-cache@v2[span_20](end_span)
         with:
-          [span_20](start_span)cache-on-failure: true[span_20](end_span)
-          [span_21](start_span)key: neural-scanner-v2[span_21](end_span)
+          [span_21](start_span)cache-on-failure: true[span_21](end_span)
+          [span_22](start_span)key: neural-scanner-v2[span_22](end_span)
       
       - name: 📊 Display Scan Configuration
         run: |
-          [span_22](start_span)echo "╔═══════════════════════════════════════════════════════════════╗"[span_22](end_span)
-          [span_23](start_span)echo "║          NEURAL BRIDGE SCANNER - AUTONOMOUS MODE              ║"[span_23](end_span)
-          [span_24](start_span)echo "╚═══════════════════════════════════════════════════════════════╝"[span_24](end_span)
-          [span_25](start_span)echo "🕐 Scan Time: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')"[span_25](end_span)
+          [span_23](start_span)echo "╔═══════════════════════════════════════════════════════════════╗"[span_23](end_span)
+          [span_24](start_span)echo "║          NEURAL BRIDGE SCANNER - AUTONOMOUS MODE              ║"[span_24](end_span)
+          [span_25](start_span)echo "╚═══════════════════════════════════════════════════════════════╝"[span_25](end_span)
           [span_26](start_span)echo "🎯 Scan Type: ${{ github.event.inputs.scan_type || 'scheduled' }}"[span_26](end_span)
-          [span_27](start_span)echo "📡 Target: Direct D1 Database Injection"[span_27](end_span)
-          [span_28](start_span)echo "🔐 Security: Bridge Secret Authentication"[span_28](end_span)
-          [span_29](start_span)echo "╚═══════════════════════════════════════════════════════════════╝"[span_29](end_span)
       
-      - name: 🔨 Build Rust Scanner (Release Mode)
+      - name: 🔨 Build Rust Scanner
         run: |
-          [span_30](start_span)echo "🔨 Building scanner with optimizations..."[span_30](end_span)
-          [span_31](start_span)cargo build --release[span_31](end_span)
-          [span_32](start_span)echo "✅ Build complete"[span_32](end_span)
-      
-      - name: 🔐 Set Execute Permissions
-        run: |
-          [span_33](start_span)chmod +x ./target/release/RScanner[span_33](end_span)
-          [span_34](start_span)ls -lh ./target/release/RScanner[span_34](end_span)
+          [span_27](start_span)cargo build --release[span_27](end_span)
+          [span_28](start_span)chmod +x ./target/release/RScanner[span_28](end_span)
       
       - name: 🔍 Execute Network Scan
         id: scan
         run: |
-          [span_35](start_span)echo "🔍 Starting network asset discovery..."[span_35](end_span)
-          [span_36](start_span)./target/release/RScanner > scan_results.txt 2>&1[span_36](end_span)
-          [span_37](start_span)echo "📊 Scan execution completed"[span_37](end_span)
-          [span_38](start_span)echo "scan_completed=true" >> $GITHUB_OUTPUT[span_38](end_span)
-          [span_39](start_span)echo "═══════════════════════════════════════════════════════════════"[span_39](end_span)
-          [span_40](start_span)echo "📋 Scan Results Preview (Last 20 lines):"[span_40](end_span)
-          [span_41](start_span)tail -n 20 scan_results.txt[span_41](end_span)
-          [span_42](start_span)echo "═══════════════════════════════════════════════════════════════"[span_42](end_span)
+          [span_29](start_span)./target/release/RScanner > scan_results.txt 2>&1[span_29](end_span)
+          [span_30](start_span)echo "scan_completed=true" >> $GITHUB_OUTPUT[span_30](end_span)
+          [span_31](start_span)tail -n 20 scan_results.txt[span_31](end_span)
       
-      - name: 🔄 Parse & Transform Scan Results
+      - name: 🔄 Parse & Transform Results
         id: transform
         run: |
-          [span_43](start_span)echo "🔄 Parsing scan results and transforming to JSON..."[span_43](end_span)
-          cat > parse_results.py << 'PYTHON_SCRIPT'
-          import re
-          import json
-          import sys
-          from datetime import datetime
-          
-          def parse_scan_results(file_path):
+          [span_32](start_span)cat > parse_results.py << 'PYTHON_SCRIPT'[span_32](end_span)
+          [span_33](start_span)import re, json, sys[span_33](end_span)
+          [span_34](start_span)from datetime import datetime[span_34](end_span)
+          def parse():
               assets = []
               try:
-                  with open(file_path, 'r', encoding='utf-8') as f:
-                      [span_44](start_span)content = f.read()[span_44](end_span)
-                  [span_45](start_span)live_pattern = r'PROXY LIVE\s+✅:\s+([\d.]+)\s+\((\d+)\s+ms\)\s+-\s+(.+?)(?:\n|$)'[span_45](end_span)
-                  [span_46](start_span)matches = re.findall(live_pattern, content)[span_46](end_span)
-                  for match in matches:
-                      ip, latency, location = match
-                      operator = None
-                      location_lower = location.lower()
-                      [span_47](start_span)if 'iran' in location_lower or 'tehran' in location_lower:[span_47](end_span)
-                          [span_48](start_span)if any(city in location_lower for city in ['tehran', 'mashhad', 'isfahan']):[span_48](end_span)
-                              [span_49](start_span)operator = 'MCI'[span_49](end_span)
-                      asset = {
-                          "type": "IP",
-                          [span_50](start_span)"value": ip.strip(),[span_50](end_span)
-                          [span_51](start_span)"latency": int(latency),[span_51](end_span)
-                          [span_52](start_span)"location": location.strip(),[span_52](end_span)
-                          [span_53](start_span)"operator": operator,[span_53](end_span)
-                          [span_54](start_span)"source": "rust_scanner",[span_54](end_span)
-                          [span_55](start_span)"timestamp": datetime.utcnow().isoformat() + "Z"[span_55](end_span)
-                      }
-                      assets.append(asset)
-                  seen = set()
-                  unique_assets = []
-                  for asset in assets:
-                      if asset['value'] not in seen:
-                          [span_56](start_span)seen.add(asset['value'])[span_56](end_span)
-                          [span_57](start_span)unique_assets.append(asset)[span_57](end_span)
-                  return unique_assets
-              except Exception as e:
-                  [span_58](start_span)print(f"Error parsing results: {e}", file=sys.stderr)[span_58](end_span)
-                  return []
-          
-          if __name__ == "__main__":
-              [span_59](start_span)assets = parse_scan_results('scan_results.txt')[span_59](end_span)
-              if assets:
-                  payload = {
-                      [span_60](start_span)"source": "github_actions",[span_60](end_span)
-                      [span_61](start_span)"scan_timestamp": datetime.utcnow().isoformat() + "Z",[span_61](end_span)
-                      [span_62](start_span)"scan_type": "${{ github.event.inputs.scan_type || 'scheduled' }}",[span_62](end_span)
-                      [span_63](start_span)"total_discovered": len(assets),[span_63](end_span)
-                      [span_64](start_span)"assets": assets[span_64](end_span)
-                  }
-                  with open('payload.json', 'w') as f:
-                      [span_65](start_span)json.dump(payload, f, indent=2)[span_65](end_span)
-                  [span_66](start_span)print(f"✅ Successfully parsed {len(assets)} unique assets")[span_66](end_span)
-                  with open('payload_summary.txt', 'w') as f:
-                      [span_67](start_span)f.write(f"asset_count={len(assets)}\n")[span_67](end_span)
-                      [span_68](start_span)f.write(f"payload_size={len(json.dumps(payload))}\n")[span_68](end_span)
-              else:
-                  sys.exit(1)
+                  [span_35](start_span)with open('scan_results.txt', 'r') as f: content = f.read()[span_35](end_span)
+                  [span_36](start_span)matches = re.findall(r'PROXY LIVE\s+✅:\s+([\d.]+)\s+\((\d+)\s+ms\)\s+-\s+(.+?)(?:\n|$)', content)[span_36](end_span)
+                  for ip, lat, loc in matches:
+                      [span_37](start_span)assets.append({"type":"IP","value":ip,"latency":int(lat),"location":loc,"timestamp":datetime.utcnow().isoformat()+"Z"})[span_37](end_span)
+                  [span_38](start_span)unique = {a['value']:a for a in assets}.values()[span_38](end_span)
+                  [span_39](start_span)payload = {"source":"github_actions","assets": list(unique)}[span_39](end_span)
+                  [span_40](start_span)with open('payload.json', 'w') as f: json.dump(payload, f)[span_40](end_span)
+                  [span_41](start_span)print(f"asset_count={len(unique)}")[span_41](end_span)
+              except: sys.exit(1)
+          parse()
           PYTHON_SCRIPT
-          
-          [span_69](start_span)python3 parse_results.py[span_69](end_span)
-          [span_70](start_span)if [ -f payload_summary.txt ]; then[span_70](end_span)
-            [span_71](start_span)cat payload_summary.txt >> $GITHUB_OUTPUT[span_71](end_span)
-          fi
-          [span_72](start_span)if [ -f payload.json ]; then[span_72](end_span)
-            [span_73](start_span)echo "═══════════════════════════════════════════════════════════════"[span_73](end_span)
-            [span_74](start_span)echo "📦 Payload Preview (First 5 assets):"[span_74](end_span)
-            [span_75](start_span)cat payload.json | jq '.assets[:5]'[span_75](end_span)
-            [span_76](start_span)echo "═══════════════════════════════════════════════════════════════"[span_76](end_span)
-          fi
+          [span_42](start_span)python3 parse_results.py > payload_summary.txt[span_42](end_span)
+          [span_43](start_span)cat payload_summary.txt >> $GITHUB_OUTPUT[span_43](end_span)
       
-      - name: 🚀 Sync to Cloudflare D1 via Bridge API
+      - name: 🚀 Sync to Cloudflare D1
         id: sync
-        if: steps.transform.outputs.asset_count > 0
+        [span_44](start_span)if: steps.transform.outputs.asset_count != '0'[span_44](end_span)
         env:
-          [span_77](start_span)WORKER_URL: ${{ secrets.WORKER_URL }}[span_77](end_span)
-          [span_78](start_span)BRIDGE_SECRET: ${{ secrets.BRIDGE_SECRET }}[span_78](end_span)
+          [span_45](start_span)WORKER_URL: ${{ secrets.WORKER_URL }}[span_45](end_span)
+          [span_46](start_span)BRIDGE_SECRET: ${{ secrets.BRIDGE_SECRET }}[span_46](end_span)
         run: |
-          [span_79](start_span)echo "🚀 Initiating secure bridge sync..."[span_79](end_span)
-          if [ -z "$WORKER_URL" ] || [span_80](start_span)[ -z "$BRIDGE_SECRET" ]; then[span_80](end_span)
-            echo "❌ ERROR: Secrets not configured"
-            exit 1
-          fi
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-          SUCCESS=false
-          [span_81](start_span)while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do[span_81](end_span)
-            echo "🔄 Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
-            HTTP_RESPONSE=$(curl -w "\n%{http_code}" -s -X POST "${WORKER_URL}/api/v1/bridge/sync" \
-              -H "Content-Type: application/json" \
-              -H "X-Bridge-Secret: ${BRIDGE_SECRET}" \
-              -[span_82](start_span)-data-binary @payload.json --connect-timeout 30 --max-time 120)[span_82](end_span)
-            HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n 1)
-            HTTP_BODY=$(echo "$HTTP_RESPONSE" | head -n -1)
-            [span_83](start_span)if [ "$HTTP_STATUS" = "200" ]; then[span_83](end_span)
-              SUCCESS=true
-              [span_84](start_span)echo "✅ Bridge sync successful!"[span_84](end_span)
-              [span_85](start_span)INSERTED=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_inserted // 0')[span_85](end_span)
-              [span_86](start_span)echo "sync_status=success" >> $GITHUB_OUTPUT[span_86](end_span)
-              [span_87](start_span)echo "assets_inserted=$INSERTED" >> $GITHUB_OUTPUT[span_87](end_span)
-              [span_88](start_span)echo "assets_updated=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_updated // 0')" >> $GITHUB_OUTPUT[span_88](end_span)
-              [span_89](start_span)echo "assets_rejected=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_rejected // 0')" >> $GITHUB_OUTPUT[span_89](end_span)
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              [span_90](start_span)sleep $((RETRY_COUNT * 10))[span_90](end_span)
-            fi
-          done
-          [span_91](start_span)if [ "$SUCCESS" = false ]; then exit 1; fi[span_91](end_span)
+          if [ -z "$WORKER_URL" ] || [span_47](start_span)[ -z "$BRIDGE_SECRET" ]; then exit 1; fi[span_47](end_span)
+          curl -X POST "${WORKER_URL}/api/v1/bridge/sync" \
+            -H "X-Bridge-Secret: ${BRIDGE_SECRET}" \
+            -H "Content-Type: application/json" \
+            -[span_48](start_span)-data-binary @payload.json[span_48](end_span)
+          [span_49](start_span)echo "sync_status=success" >> $GITHUB_OUTPUT[span_49](end_span)
 
-      - name: 🩺 Verify Database Health
-        if: steps.sync.outputs.sync_status == 'success'
+      - name: 🩺 Verify Health
+        [span_50](start_span)if: steps.sync.outputs.sync_status == 'success'[span_50](end_span)
         env:
-          [span_92](start_span)WORKER_URL: ${{ secrets.WORKER_URL }}[span_92](end_span)
+          [span_51](start_span)WORKER_URL: ${{ secrets.WORKER_URL }}[span_51](end_span)
         run: |
-          [span_93](start_span)curl -s -X GET "${WORKER_URL}/api/v1/bridge/health" | jq '.'[span_93](end_span)
-      
-      - name: 📊 Generate Workflow Summary
-        if: always()
+          [span_52](start_span)curl -s -X GET "${WORKER_URL}/api/v1/bridge/health" | jq '.'[span_52](end_span)
+
+      - name: 📊 Summary
+        [span_53](start_span)if: always()[span_53](end_span)
         run: |
-          [span_94](start_span)echo "# 🧬 Neural Bridge Scanner Summary" >> $GITHUB_STEP_SUMMARY[span_94](end_span)
-          [span_95](start_span)echo "- **Status**: ${{ steps.sync.outputs.sync_status || 'Skipped/Failed' }}" >> $GITHUB_STEP_SUMMARY[span_95](end_span)
-      
-      # بخش اصلاح شده برای رفع خطا
-      - name: 🔔 Send Notification (Optional)
-        if: always() && steps.sync.outputs.sync_status == 'success'
+          [span_54](start_span)echo "### 🧬 Scan Summary" >> $GITHUB_STEP_SUMMARY[span_54](end_span)
+          [span_55](start_span)echo "- Status: ${{ steps.sync.outputs.sync_status }}" >> $GITHUB_STEP_SUMMARY[span_55](end_span)
+
+      - name: 🔔 Notification
+        [span_56](start_span)if: always() && steps.sync.outputs.sync_status == 'success'[span_56](end_span)
         env:
-          [span_96](start_span)WEBHOOK_URL: ${{ secrets.NOTIFICATION_WEBHOOK }}[span_96](end_span)
+          [span_57](start_span)WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}[span_57](end_span)
         run: |
-          # ابتدا چک می‌کنیم که آیا متغیر محیطی مقدار دارد یا خیر
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "⚠️ Notification skipped: Webhook URL not set"
-          else
-            curl -s -X POST "$WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"text\": \"✅ Neural Bridge Sync Complete\",
-                \"assets_discovered\": ${{ steps.transform.outputs.asset_count }},
-                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-              [span_97](start_span)[span_98](start_span)}" || echo "⚠️ Notification failed"[span_97](end_span)[span_98](end_span)
+          if [ ! -z "$WEBHOOK" ]; then
+            [span_58](start_span)curl -X POST "$WEBHOOK" -d '{"text":"Sync Complete"}'[span_58](end_span)
           fi
 
-      - name: 🧹 Cleanup Temporary Files
-        if: always()
-        run: |
-          [span_99](start_span)rm -f scan_results.txt payload.json payload_summary.txt parse_results.py[span_99](end_span)
+      - name: 🧹 Cleanup
+        [span_59](start_span)if: always()[span_59](end_span)
+        [span_60](start_span)run: rm -f scan_results.txt payload.json payload_summary.txt parse_results.py[span_60](end_span)
