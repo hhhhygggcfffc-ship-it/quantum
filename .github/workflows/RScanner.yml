@@ -321,19 +321,25 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ASSET_COUNT: ${{ steps.parse.outputs.asset_count }}
+          ASSETS_INSERTED: ${{ steps.sync.outputs.assets_inserted }}
+          ASSETS_UPDATED: ${{ steps.sync.outputs.assets_updated }}
+          ASSETS_REJECTED: ${{ steps.sync.outputs.assets_rejected }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "⚠️ Telegram credentials not configured - skipping notification"
             exit 0
           fi
           
+          CURRENT_TIME=$(TZ='Asia/Tehran' date '+%H:%M:%S')
+          
           MESSAGE="🧬 Neural Bridge Sync Complete
 
-📊 Assets Found: ${{ steps.parse.outputs.asset_count }}
-✅ Inserted: ${{ steps.sync.outputs.assets_inserted }}
-🔄 Updated: ${{ steps.sync.outputs.assets_updated }}
-❌ Rejected: ${{ steps.sync.outputs.assets_rejected }}
-⏰ Time: $(TZ='Asia/Tehran' date '+%H:%M:%S')
+📊 Assets Found: ${ASSET_COUNT}
+✅ Inserted: ${ASSETS_INSERTED}
+🔄 Updated: ${ASSETS_UPDATED}
+❌ Rejected: ${ASSETS_REJECTED}
+⏰ Time: ${CURRENT_TIME}
 
 The autonomous system continues to evolve."
           
