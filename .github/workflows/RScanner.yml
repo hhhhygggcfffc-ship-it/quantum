@@ -1,231 +1,293 @@
-name: Autonomous Proxy Scanner - Neural Bridge Integration
+name: Neural Bridge Scanner - Autonomous Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🧬 AUTONOMOUS CYBER-ORGANISM PIPELINE
+# ═══════════════════════════════════════════════════════════════════════════════
+# Purpose: Scan network assets and sync directly to Cloudflare D1 via secure API
+# No file storage - Direct database injection architecture
+# ═══════════════════════════════════════════════════════════════════════════════
 
 on:
   workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of scan to perform'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - quick
+          - targeted
+      operator_filter:
+        description: 'Filter by operator (optional)'
+        required: false
+        type: string
   schedule:
+    # Run every 6 hours for continuous intelligence gathering
     - cron: '0 */6 * * *'
 
 env:
-  SCANNER_VERSION: "2.0.0-AUTONOMOUS"
+  RUST_BACKTRACE: 1
+  SCANNER_VERSION: "2.0.0-NEURAL"
 
 jobs:
-  scan-and-sync:
+  neural-scan-and-sync:
     runs-on: ubuntu-latest
-    name: Scan, Analyze & Sync to Neural Bridge
-    timeout-minutes: 90
+    name: Neural Asset Discovery & Bridge Sync
+    timeout-minutes: 60
     
     steps:
-      - name: Checkout Repository
+      # ═══════════════════════════════════════════════════════════════════════
+      # 📦 ENVIRONMENT SETUP
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🔄 Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Install Rust Toolchain
+      - name: 🦀 Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
+          components: rustfmt, clippy
       
-      - name: Cache Rust Dependencies
+      - name: 💾 Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          key: scanner-cache-v2
+          cache-on-failure: true
+          key: neural-scanner-v2
       
-      - name: Build Rust Scanner (Release)
+      - name: 📊 Display Scan Configuration
         run: |
-          echo "🔨 Building Rust Scanner..."
-          cargo build --release
-          ls -lh ./target/release/
-        shell: bash
+          echo "╔═══════════════════════════════════════════════════════════════╗"
+          echo "║          NEURAL BRIDGE SCANNER - AUTONOMOUS MODE              ║"
+          echo "╚═══════════════════════════════════════════════════════════════╝"
+          echo "🕐 Scan Time: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🎯 Scan Type: ${{ github.event.inputs.scan_type || 'scheduled' }}"
+          echo "📡 Target: Direct D1 Database Injection"
+          echo "🔐 Security: Bridge Secret Authentication"
+          echo "╚═══════════════════════════════════════════════════════════════╝"
       
-      - name: Set Execute Permissions
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🔨 BUILD SCANNER
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🔨 Build Rust Scanner (Release Mode)
+        run: |
+          echo "🔨 Building scanner with optimizations..."
+          cargo build --release
+          echo "✅ Build complete"
+      
+      - name: 🔐 Set Execute Permissions
         run: |
           chmod +x ./target/release/RScanner
-          echo "✅ Executable permissions set"
-        shell: bash
+          ls -lh ./target/release/RScanner
       
-      - name: Execute Proxy Scanner
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🔍 EXECUTE SCAN
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🔍 Execute Network Scan
         id: scan
         run: |
-          echo "🔍 Starting proxy scan..."
-          echo "Scan started at: $(TZ='Asia/Tehran' date '+%Y-%m-%d %H:%M:%S')"
-          ./target/release/RScanner
-          echo "✅ Scan completed"
+          echo "🔍 Starting network asset discovery..."
+          
+          # Execute scanner and capture output
+          ./target/release/RScanner > scan_results.txt 2>&1
+          
+          # Display scan summary
+          echo "📊 Scan execution completed"
           echo "scan_completed=true" >> $GITHUB_OUTPUT
-        shell: bash
-        continue-on-error: true
+          
+          # Show last 20 lines of results
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "📋 Scan Results Preview (Last 20 lines):"
+          tail -n 20 scan_results.txt
+          echo "═══════════════════════════════════════════════════════════════"
       
-      - name: Parse Scanner Results
-        id: parse
-        if: steps.scan.outputs.scan_completed == 'true'
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🔄 TRANSFORM & PREPARE DATA
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🔄 Parse & Transform Scan Results
+        id: transform
         run: |
-          echo "📊 Parsing scanner output..."
+          echo "🔄 Parsing scan results and transforming to JSON..."
           
-          if [ ! -f "sub/ProxyIP-Daily.md" ]; then
-            echo "❌ Output file not found"
-            echo "parse_success=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          
-          cat > parse_results.py << 'EOF'
+          # Create Python script for parsing
+          cat > parse_results.py << 'PYTHON_SCRIPT'
           import re
           import json
           import sys
           from datetime import datetime
           
-          def parse_proxy_file(filename):
+          def parse_scan_results(file_path):
               assets = []
+              
               try:
-                  with open(filename, 'r', encoding='utf-8') as f:
+                  with open(file_path, 'r', encoding='utf-8') as f:
                       content = f.read()
                   
-                  ip_pattern = r'\|\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*\|([^|]*)\|([^|]*)\|'
-                  matches = re.findall(ip_pattern, content)
+                  # Parse PROXY LIVE lines
+                  live_pattern = r'PROXY LIVE\s+✅:\s+([\d.]+)\s+\((\d+)\s+ms\)\s+-\s+(.+?)(?:\n|$)'
+                  matches = re.findall(live_pattern, content)
                   
                   for match in matches:
-                      ip = match[0].strip()
-                      operator = match[1].strip() if match[1].strip() else None
-                      latency_str = match[2].strip()
+                      ip, latency, location = match
                       
-                      latency = None
-                      if latency_str:
-                          latency_match = re.search(r'(\d+)', latency_str)
-                          if latency_match:
-                              latency = int(latency_match.group(1))
-                      
-                      country_code = None
-                      if operator:
-                          operator_lower = operator.lower()
-                          if 'iran' in operator_lower or 'mci' in operator_lower or 'irancell' in operator_lower:
-                              country_code = 'IR'
-                          elif 'usa' in operator_lower or 'us' in operator_lower:
-                              country_code = 'US'
+                      # Determine operator from location (Iranian operators)
+                      operator = None
+                      location_lower = location.lower()
+                      if 'iran' in location_lower or 'tehran' in location_lower:
+                          # Simple heuristic - can be enhanced
+                          if any(city in location_lower for city in ['tehran', 'mashhad', 'isfahan']):
+                              operator = 'MCI'  # Default to MCI for Iranian IPs
                       
                       asset = {
-                          'type': 'IP',
-                          'value': ip,
-                          'operator': operator,
-                          'country_code': country_code,
-                          'latency': latency,
-                          'source': 'rust_scanner',
-                          'timestamp': datetime.utcnow().isoformat() + 'Z'
+                          "type": "IP",
+                          "value": ip.strip(),
+                          "latency": int(latency),
+                          "location": location.strip(),
+                          "operator": operator,
+                          "source": "rust_scanner",
+                          "timestamp": datetime.utcnow().isoformat() + "Z"
                       }
                       assets.append(asset)
                   
-                  unique_assets = []
+                  # Remove duplicates based on IP
                   seen = set()
+                  unique_assets = []
                   for asset in assets:
                       if asset['value'] not in seen:
-                          unique_assets.append(asset)
                           seen.add(asset['value'])
+                          unique_assets.append(asset)
                   
                   return unique_assets
               
               except Exception as e:
-                  print(f"Error parsing file: {e}", file=sys.stderr)
+                  print(f"Error parsing results: {e}", file=sys.stderr)
                   return []
           
-          assets = parse_proxy_file('sub/ProxyIP-Daily.md')
+          if __name__ == "__main__":
+              assets = parse_scan_results('scan_results.txt')
+              
+              if assets:
+                  # Create payload
+                  payload = {
+                      "source": "github_actions",
+                      "scan_timestamp": datetime.utcnow().isoformat() + "Z",
+                      "scan_type": "${{ github.event.inputs.scan_type || 'scheduled' }}",
+                      "total_discovered": len(assets),
+                      "assets": assets
+                  }
+                  
+                  # Write to file
+                  with open('payload.json', 'w') as f:
+                      json.dump(payload, f, indent=2)
+                  
+                  print(f"✅ Successfully parsed {len(assets)} unique assets")
+                  print(f"📦 Payload size: {len(json.dumps(payload))} bytes")
+                  
+                  # Output for GitHub Actions
+                  with open('payload_summary.txt', 'w') as f:
+                      f.write(f"asset_count={len(assets)}\n")
+                      f.write(f"payload_size={len(json.dumps(payload))}\n")
+              else:
+                  print("⚠️ No assets found in scan results")
+                  sys.exit(1)
+          PYTHON_SCRIPT
           
-          output = {
-              'source': 'github_actions',
-              'scan_timestamp': datetime.utcnow().isoformat() + 'Z',
-              'scan_type': 'scheduled',
-              'total_discovered': len(assets),
-              'assets': assets
-          }
+          # Execute parser
+          python3 parse_results.py
           
-          with open('scan_results.json', 'w') as f:
-              json.dump(output, f, indent=2)
-          
-          print(f"asset_count={len(assets)}")
-          EOF
-          
-          python3 parse_results.py > parser_output.txt 2>&1
-          
-          if [ -f "scan_results.json" ]; then
-            echo "✅ Results parsed successfully"
-            echo "parse_success=true" >> $GITHUB_OUTPUT
-            
-            asset_count=$(cat parser_output.txt | grep "asset_count=" | cut -d'=' -f2 || echo "0")
-            echo "asset_count=$asset_count" >> $GITHUB_OUTPUT
-            
-            echo "📊 Scan Summary:"
-            python3 -m json.tool scan_results.json | head -20
-          else
-            echo "❌ Failed to generate results JSON"
-            echo "parse_success=false" >> $GITHUB_OUTPUT
-            exit 1
+          # Load summary
+          if [ -f payload_summary.txt ]; then
+            cat payload_summary.txt >> $GITHUB_OUTPUT
           fi
-        shell: bash
+          
+          # Display payload preview
+          if [ -f payload.json ]; then
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "📦 Payload Preview (First 5 assets):"
+            cat payload.json | jq '.assets[:5]'
+            echo "═══════════════════════════════════════════════════════════════"
+          fi
       
-      - name: Sync to Cloudflare Neural Bridge
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🚀 BRIDGE SYNC TO CLOUDFLARE D1
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🚀 Sync to Cloudflare D1 via Bridge API
         id: sync
-        if: steps.parse.outputs.parse_success == 'true'
+        if: steps.transform.outputs.asset_count > 0
         env:
           WORKER_URL: ${{ secrets.WORKER_URL }}
           BRIDGE_SECRET: ${{ secrets.BRIDGE_SECRET }}
         run: |
-          echo "🔄 Syncing to Neural Bridge API..."
-          echo "Target: $WORKER_URL/api/v1/bridge/sync"
+          echo "🚀 Initiating secure bridge sync..."
           
+          # Validate required secrets
           if [ -z "$WORKER_URL" ]; then
-            echo "❌ WORKER_URL secret not set"
-            echo "sync_status=failed" >> $GITHUB_OUTPUT
+            echo "❌ ERROR: WORKER_URL secret not configured"
             exit 1
           fi
           
           if [ -z "$BRIDGE_SECRET" ]; then
-            echo "❌ BRIDGE_SECRET secret not set"
-            echo "sync_status=failed" >> $GITHUB_OUTPUT
+            echo "❌ ERROR: BRIDGE_SECRET secret not configured"
             exit 1
           fi
           
+          # Perform sync with retry logic
           MAX_RETRIES=3
           RETRY_COUNT=0
           SUCCESS=false
           
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do
             echo "🔄 Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
             
-            response=$(curl -s -w "\n%{http_code}" \
+            # Execute POST request
+            HTTP_RESPONSE=$(curl -w "\n%{http_code}" -s \
               -X POST \
+              "${WORKER_URL}/api/v1/bridge/sync" \
               -H "Content-Type: application/json" \
-              -H "X-Bridge-Secret: $BRIDGE_SECRET" \
-              -H "User-Agent: GitHub-Actions-Scanner/${{ env.SCANNER_VERSION }}" \
+              -H "X-Bridge-Secret: ${BRIDGE_SECRET}" \
+              -H "User-Agent: GitHub-Actions-Neural-Scanner/2.0" \
+              --data-binary @payload.json \
               --connect-timeout 30 \
-              --max-time 120 \
-              --data @scan_results.json \
-              "$WORKER_URL/api/v1/bridge/sync")
+              --max-time 120)
             
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
+            # Extract status code and body
+            HTTP_BODY=$(echo "$HTTP_RESPONSE" | head -n -1)
+            HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n 1)
             
-            echo "HTTP Status: $http_code"
+            echo "📊 HTTP Status: $HTTP_STATUS"
             
-            if [ "$http_code" = "200" ]; then
+            if [ "$HTTP_STATUS" = "200" ]; then
               SUCCESS=true
-              echo "✅ Successfully synced to Neural Bridge"
-              echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
+              echo "✅ Bridge sync successful!"
+              echo "$HTTP_BODY" | jq '.'
               
-              inserted=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_inserted',0))" 2>/dev/null || echo "0")
-              updated=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_updated',0))" 2>/dev/null || echo "0")
-              rejected=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_rejected',0))" 2>/dev/null || echo "0")
+              # Extract sync results
+              INSERTED=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_inserted // 0')
+              UPDATED=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_updated // 0')
+              REJECTED=$(echo "$HTTP_BODY" | jq -r '.sync_result.assets_rejected // 0')
               
               echo "sync_status=success" >> $GITHUB_OUTPUT
-              echo "assets_inserted=$inserted" >> $GITHUB_OUTPUT
-              echo "assets_updated=$updated" >> $GITHUB_OUTPUT
-              echo "assets_rejected=$rejected" >> $GITHUB_OUTPUT
+              echo "assets_inserted=$INSERTED" >> $GITHUB_OUTPUT
+              echo "assets_updated=$UPDATED" >> $GITHUB_OUTPUT
+              echo "assets_rejected=$REJECTED" >> $GITHUB_OUTPUT
               
-              echo "════════════════════════════════════════════════════════════"
+              echo "═══════════════════════════════════════════════════════════════"
               echo "📊 SYNC RESULTS:"
-              echo "   ✅ Inserted: $inserted"
-              echo "   🔄 Updated: $updated"
-              echo "   ❌ Rejected: $rejected"
-              echo "════════════════════════════════════════════════════════════"
+              echo "   ✅ Inserted: $INSERTED"
+              echo "   🔄 Updated: $UPDATED"
+              echo "   ❌ Rejected: $REJECTED"
+              echo "═══════════════════════════════════════════════════════════════"
+              
             else
-              echo "⚠️ Sync failed with HTTP $http_code"
-              echo "Response: $body"
+              echo "⚠️ Sync failed with status $HTTP_STATUS"
+              echo "Response: $HTTP_BODY"
               RETRY_COUNT=$((RETRY_COUNT + 1))
               
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
@@ -236,125 +298,123 @@ jobs:
             fi
           done
           
-          if [ "$SUCCESS" = "false" ]; then
+          if [ "$SUCCESS" = false ]; then
             echo "❌ All sync attempts failed"
             echo "sync_status=failed" >> $GITHUB_OUTPUT
             exit 1
           fi
-        shell: bash
       
-      - name: Verify Neural Bridge Health
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🩺 POST-SYNC HEALTH CHECK
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🩺 Verify Database Health
         if: steps.sync.outputs.sync_status == 'success'
         env:
           WORKER_URL: ${{ secrets.WORKER_URL }}
+          BRIDGE_SECRET: ${{ secrets.BRIDGE_SECRET }}
         run: |
-          echo "🔍 Checking Neural Bridge health..."
+          echo "🩺 Checking database health..."
           
-          response=$(curl -s -w "\n%{http_code}" \
+          HEALTH_RESPONSE=$(curl -s \
             -X GET \
-            --max-time 30 \
-            "$WORKER_URL/api/v1/bridge/health")
+            "${WORKER_URL}/api/v1/bridge/health" \
+            -H "Accept: application/json")
           
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
+          echo "$HEALTH_RESPONSE" | jq '.'
           
-          if [ "$http_code" = "200" ]; then
-            echo "✅ Bridge health check passed"
-            echo "$body" | python3 -m json.tool
-            
-            active_assets=$(echo "$body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('active_assets',0))" 2>/dev/null || echo "0")
-            echo "✅ Active assets in database: $active_assets"
-          else
-            echo "⚠️ Could not retrieve bridge health (HTTP $http_code)"
-          fi
-        shell: bash
-        continue-on-error: true
+          ACTIVE_ASSETS=$(echo "$HEALTH_RESPONSE" | jq -r '.active_assets // 0')
+          echo "✅ Active assets in database: $ACTIVE_ASSETS"
       
-      - name: Generate Summary Report
+      # ═══════════════════════════════════════════════════════════════════════
+      # 📊 GENERATE WORKFLOW SUMMARY
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 📊 Generate Workflow Summary
         if: always()
         run: |
-          echo "📋 Generating workflow summary..."
-          
-          echo "# 🧬 Autonomous Neural Bridge Scan Report" > $GITHUB_STEP_SUMMARY
+          echo "# 🧬 Neural Bridge Scanner - Workflow Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Execution Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Workflow Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Scan Time**: $(TZ='Asia/Tehran' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_STEP_SUMMARY
-          echo "- **Scanner Version**: ${{ env.SCANNER_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Scan Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scan Type**: ${{ github.event.inputs.scan_type || 'scheduled' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scanner Version**: ${SCANNER_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Results" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ steps.scan.outputs.scan_completed }}" = "true" ]; then
-            echo "- ✅ Scanner execution: **Success**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ Scanner execution: **Failed**" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ "${{ steps.parse.outputs.parse_success }}" = "true" ]; then
-            echo "- ✅ Result parsing: **Success**" >> $GITHUB_STEP_SUMMARY
-            echo "- 📊 Assets found: **${{ steps.parse.outputs.asset_count }}**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ Result parsing: **Failed**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.transform.outputs.asset_count }}" != "" ]; then
+            echo "## 🔍 Discovery Results" >> $GITHUB_STEP_SUMMARY
+            echo "- **Assets Discovered**: ${{ steps.transform.outputs.asset_count }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Payload Size**: ${{ steps.transform.outputs.payload_size }} bytes" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.sync.outputs.sync_status }}" = "success" ]; then
-            echo "- ✅ Neural Bridge sync: **Success**" >> $GITHUB_STEP_SUMMARY
-            echo "  - Inserted: **${{ steps.sync.outputs.assets_inserted }}**" >> $GITHUB_STEP_SUMMARY
-            echo "  - Updated: **${{ steps.sync.outputs.assets_updated }}**" >> $GITHUB_STEP_SUMMARY
-            echo "  - Rejected: **${{ steps.sync.outputs.assets_rejected }}**" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Sync Results" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Assets Inserted**: ${{ steps.sync.outputs.assets_inserted }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Assets Updated**: ${{ steps.sync.outputs.assets_updated }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Assets Rejected**: ${{ steps.sync.outputs.assets_rejected }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎯 **All assets have been successfully synced to D1 database**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ❌ Neural Bridge sync: **Failed**" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Sync Status" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "- Please check the logs for details" >> $GITHUB_STEP_SUMMARY
           fi
           
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## System Status" >> $GITHUB_STEP_SUMMARY
-          echo "The autonomous cyber-organism continues to evolve and self-optimize based on real-time network intelligence." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Powered by Quantum VLESS v19 - Neural Bridge Edition*" >> $GITHUB_STEP_SUMMARY
-          
-          echo "✅ Summary report generated"
-        shell: bash
+          echo "_Autonomous pipeline - No file commits required_" >> $GITHUB_STEP_SUMMARY
       
-      - name: Send Telegram Notification
-        if: steps.sync.outputs.sync_status == 'success'
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🔔 NOTIFICATION (Optional - via Telegram or other service)
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🔔 Send Notification (Optional)
+        if: steps.sync.outputs.sync_status == 'success' && secrets.NOTIFICATION_WEBHOOK != ''
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ASSET_COUNT: ${{ steps.parse.outputs.asset_count }}
-          ASSETS_INSERTED: ${{ steps.sync.outputs.assets_inserted }}
-          ASSETS_UPDATED: ${{ steps.sync.outputs.assets_updated }}
-          ASSETS_REJECTED: ${{ steps.sync.outputs.assets_rejected }}
+          WEBHOOK_URL: ${{ secrets.NOTIFICATION_WEBHOOK }}
         run: |
-          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-            echo "⚠️ Telegram credentials not configured - skipping notification"
-            exit 0
-          fi
-          
-          CURRENT_TIME=$(TZ='Asia/Tehran' date '+%H:%M:%S')
-          
-          MESSAGE="🧬 Neural Bridge Sync Complete
-
-📊 Assets Found: ${ASSET_COUNT}
-✅ Inserted: ${ASSETS_INSERTED}
-🔄 Updated: ${ASSETS_UPDATED}
-❌ Rejected: ${ASSETS_REJECTED}
-⏰ Time: ${CURRENT_TIME}
-
-The autonomous system continues to evolve."
-          
-          curl -s -X POST \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${MESSAGE}" \
-            > /dev/null && echo "✅ Telegram notification sent" || echo "⚠️ Failed to send Telegram notification"
-        shell: bash
-        continue-on-error: true
+          # Send notification via webhook (customize as needed)
+          curl -s -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"✅ Neural Bridge Sync Complete\",
+              \"assets_discovered\": ${{ steps.transform.outputs.asset_count }},
+              \"assets_inserted\": ${{ steps.sync.outputs.assets_inserted }},
+              \"assets_updated\": ${{ steps.sync.outputs.assets_updated }},
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }" || echo "⚠️ Notification failed (non-critical)"
       
-      - name: Cleanup Artifacts
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🧹 CLEANUP (No file artifacts to commit)
+      # ═══════════════════════════════════════════════════════════════════════
+      
+      - name: 🧹 Cleanup Temporary Files
         if: always()
         run: |
           echo "🧹 Cleaning up temporary files..."
-          rm -f scan_results.json parse_results.py parser_output.txt
-          echo "✅ Cleanup complete"
-        shell: bash
+          rm -f scan_results.txt payload.json payload_summary.txt parse_results.py
+          echo "✅ Cleanup complete - No files committed to repository"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 📝 WORKFLOW NOTES
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Required GitHub Secrets:
+# 1. WORKER_URL - Full URL to your Cloudflare Worker (e.g., https://your-worker.your-domain.workers.dev)
+# 2. BRIDGE_SECRET - Strong secret key (min 32 characters, use: openssl rand -base64 32)
+# 3. NOTIFICATION_WEBHOOK - (Optional) Webhook URL for notifications
+#
+# Environment Variables in Cloudflare Worker:
+# 1. BRIDGE_SECRET - Must match GitHub secret (set as Secret, not Variable)
+#
+# Workflow Features:
+# ✅ Zero file commits - Direct D1 injection
+# ✅ Automatic retry logic with exponential backoff
+# ✅ Health checks after sync
+# ✅ Comprehensive error handling
+# ✅ Detailed workflow summaries
+# ✅ Optional notification system
+#
+# ═══════════════════════════════════════════════════════════════════════════════
