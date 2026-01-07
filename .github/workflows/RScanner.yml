@@ -3,7 +3,7 @@ name: Autonomous Proxy Scanner - Neural Bridge Integration
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours for more frequent updates
+    - cron: '0 */6 * * *'
 
 env:
   SCANNER_VERSION: "2.0.0-AUTONOMOUS"
@@ -15,34 +15,22 @@ jobs:
     timeout-minutes: 90
     
     steps:
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 1: Checkout Repository
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 2: Install Rust Toolchain
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 3: Cache Rust Dependencies
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
         with:
           key: scanner-cache-v2
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 4: Build Scanner (Release Mode)
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Build Rust Scanner (Release)
         run: |
           echo "🔨 Building Rust Scanner..."
@@ -50,152 +38,120 @@ jobs:
           ls -lh ./target/release/
         shell: bash
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 5: Make Binary Executable
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Set Execute Permissions
         run: |
           chmod +x ./target/release/RScanner
           echo "✅ Executable permissions set"
         shell: bash
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 6: Run Scanner
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Execute Proxy Scanner
         id: scan
         run: |
           echo "🔍 Starting proxy scan..."
           echo "Scan started at: $(TZ='Asia/Tehran' date '+%Y-%m-%d %H:%M:%S')"
-          
-          # Run scanner
           ./target/release/RScanner
-          
           echo "✅ Scan completed"
           echo "scan_completed=true" >> $GITHUB_OUTPUT
         shell: bash
         continue-on-error: true
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 7: Parse Scanner Output
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Parse Scanner Results
         id: parse
         if: steps.scan.outputs.scan_completed == 'true'
         run: |
           echo "📊 Parsing scanner output..."
           
-          # Check if output file exists
           if [ ! -f "sub/ProxyIP-Daily.md" ]; then
             echo "❌ Output file not found"
             echo "parse_success=false" >> $GITHUB_OUTPUT
             exit 1
           fi
           
-          # Extract IPs from markdown file
-          # Assuming format like: | IP | Operator | Latency |
-          # Adjust parsing logic based on actual output format
+          cat > parse_results.py << 'EOF'
+          import re
+          import json
+          import sys
+          from datetime import datetime
           
-          cat > parse_results.py << 'PYEOF'
-import re
-import json
-import sys
-from datetime import datetime
-
-def parse_proxy_file(filename):
-    """Parse the proxy markdown file and extract structured data"""
-    assets = []
-    
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # Parse table rows (customize based on your actual format)
-        # Example format: | 1.2.3.4 | MCI | 120ms |
-        ip_pattern = r'\|\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*\|([^|]*)\|([^|]*)\|'
-        matches = re.findall(ip_pattern, content)
-        
-        for match in matches:
-            ip = match[0].strip()
-            operator = match[1].strip() if match[1].strip() else None
-            latency_str = match[2].strip()
-            
-            # Extract numeric latency
-            latency = None
-            if latency_str:
-                latency_match = re.search(r'(\d+)', latency_str)
-                if latency_match:
-                    latency = int(latency_match.group(1))
-            
-            # Determine operator/country
-            country_code = None
-            if operator:
-                operator_lower = operator.lower()
-                if 'iran' in operator_lower or 'mci' in operator_lower or 'irancell' in operator_lower:
-                    country_code = 'IR'
-                elif 'usa' in operator_lower or 'us' in operator_lower:
-                    country_code = 'US'
-            
-            asset = {
-                'type': 'IP',
-                'value': ip,
-                'operator': operator,
-                'country_code': country_code,
-                'latency': latency,
-                'source': 'rust_scanner',
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
-            }
-            assets.append(asset)
-        
-        # Remove duplicates
-        unique_assets = []
-        seen = set()
-        for asset in assets:
-            if asset['value'] not in seen:
-                unique_assets.append(asset)
-                seen.add(asset['value'])
-        
-        return unique_assets
-    
-    except Exception as e:
-        print(f"Error parsing file: {e}", file=sys.stderr)
-        return []
-
-# Parse the file
-assets = parse_proxy_file('sub/ProxyIP-Daily.md')
-
-# Write to JSON file
-output = {
-    'source': 'github_actions',
-    'scan_timestamp': datetime.utcnow().isoformat() + 'Z',
-    'scan_type': 'scheduled',
-    'total_discovered': len(assets),
-    'assets': assets
-}
-
-with open('scan_results.json', 'w') as f:
-    json.dump(output, f, indent=2)
-
-print(f"✅ Parsed {len(assets)} unique assets")
-
-# Output for GitHub Actions
-print(f"asset_count={len(assets)}")
-PYEOF
-
-          # Run Python parser
-          python3 parse_results.py > parser_output.txt
+          def parse_proxy_file(filename):
+              assets = []
+              try:
+                  with open(filename, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  ip_pattern = r'\|\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*\|([^|]*)\|([^|]*)\|'
+                  matches = re.findall(ip_pattern, content)
+                  
+                  for match in matches:
+                      ip = match[0].strip()
+                      operator = match[1].strip() if match[1].strip() else None
+                      latency_str = match[2].strip()
+                      
+                      latency = None
+                      if latency_str:
+                          latency_match = re.search(r'(\d+)', latency_str)
+                          if latency_match:
+                              latency = int(latency_match.group(1))
+                      
+                      country_code = None
+                      if operator:
+                          operator_lower = operator.lower()
+                          if 'iran' in operator_lower or 'mci' in operator_lower or 'irancell' in operator_lower:
+                              country_code = 'IR'
+                          elif 'usa' in operator_lower or 'us' in operator_lower:
+                              country_code = 'US'
+                      
+                      asset = {
+                          'type': 'IP',
+                          'value': ip,
+                          'operator': operator,
+                          'country_code': country_code,
+                          'latency': latency,
+                          'source': 'rust_scanner',
+                          'timestamp': datetime.utcnow().isoformat() + 'Z'
+                      }
+                      assets.append(asset)
+                  
+                  unique_assets = []
+                  seen = set()
+                  for asset in assets:
+                      if asset['value'] not in seen:
+                          unique_assets.append(asset)
+                          seen.add(asset['value'])
+                  
+                  return unique_assets
+              
+              except Exception as e:
+                  print(f"Error parsing file: {e}", file=sys.stderr)
+                  return []
+          
+          assets = parse_proxy_file('sub/ProxyIP-Daily.md')
+          
+          output = {
+              'source': 'github_actions',
+              'scan_timestamp': datetime.utcnow().isoformat() + 'Z',
+              'scan_type': 'scheduled',
+              'total_discovered': len(assets),
+              'assets': assets
+          }
+          
+          with open('scan_results.json', 'w') as f:
+              json.dump(output, f, indent=2)
+          
+          print(f"asset_count={len(assets)}")
+          EOF
+          
+          python3 parse_results.py > parser_output.txt 2>&1
           
           if [ -f "scan_results.json" ]; then
             echo "✅ Results parsed successfully"
             echo "parse_success=true" >> $GITHUB_OUTPUT
             
-            # Extract asset count
-            asset_count=$(cat parser_output.txt | grep "asset_count=" | cut -d'=' -f2)
+            asset_count=$(cat parser_output.txt | grep "asset_count=" | cut -d'=' -f2 || echo "0")
             echo "asset_count=$asset_count" >> $GITHUB_OUTPUT
             
-            # Show summary
             echo "📊 Scan Summary:"
-            cat scan_results.json | python3 -m json.tool | head -20
+            python3 -m json.tool scan_results.json | head -20
           else
             echo "❌ Failed to generate results JSON"
             echo "parse_success=false" >> $GITHUB_OUTPUT
@@ -203,9 +159,6 @@ PYEOF
           fi
         shell: bash
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 8: Sync to Neural Bridge API
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Sync to Cloudflare Neural Bridge
         id: sync
         if: steps.parse.outputs.parse_success == 'true'
@@ -216,7 +169,6 @@ PYEOF
           echo "🔄 Syncing to Neural Bridge API..."
           echo "Target: $WORKER_URL/api/v1/bridge/sync"
           
-          # Verify environment variables
           if [ -z "$WORKER_URL" ]; then
             echo "❌ WORKER_URL secret not set"
             echo "sync_status=failed" >> $GITHUB_OUTPUT
@@ -229,12 +181,11 @@ PYEOF
             exit 1
           fi
           
-          # Send data to bridge API with retry logic
           MAX_RETRIES=3
           RETRY_COUNT=0
           SUCCESS=false
           
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
             echo "🔄 Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
             
             response=$(curl -s -w "\n%{http_code}" \
@@ -247,7 +198,6 @@ PYEOF
               --data @scan_results.json \
               "$WORKER_URL/api/v1/bridge/sync")
             
-            # Extract HTTP code (last line)
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
             
@@ -256,9 +206,8 @@ PYEOF
             if [ "$http_code" = "200" ]; then
               SUCCESS=true
               echo "✅ Successfully synced to Neural Bridge"
-              echo "$body" | python3 -m json.tool || echo "$body"
+              echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
               
-              # Extract sync results
               inserted=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_inserted',0))" 2>/dev/null || echo "0")
               updated=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_updated',0))" 2>/dev/null || echo "0")
               rejected=$(echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sync_result',{}).get('assets_rejected',0))" 2>/dev/null || echo "0")
@@ -287,16 +236,13 @@ PYEOF
             fi
           done
           
-          if [ "$SUCCESS" = false ]; then
+          if [ "$SUCCESS" = "false" ]; then
             echo "❌ All sync attempts failed"
             echo "sync_status=failed" >> $GITHUB_OUTPUT
             exit 1
           fi
         shell: bash
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 9: Verify Sync Status
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Verify Neural Bridge Health
         if: steps.sync.outputs.sync_status == 'success'
         env:
@@ -324,20 +270,14 @@ PYEOF
         shell: bash
         continue-on-error: true
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 10: Create Summary Report
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Generate Summary Report
         if: always()
         run: |
           echo "📋 Generating workflow summary..."
           
-          cat > $GITHUB_STEP_SUMMARY << 'EOFSUM'
-# 🧬 Autonomous Neural Bridge Scan Report
-
-## Execution Details
-EOFSUM
-
+          echo "# 🧬 Autonomous Neural Bridge Scan Report" > $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Execution Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Workflow Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Scan Time**: $(TZ='Asia/Tehran' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_STEP_SUMMARY
           echo "- **Scanner Version**: ${{ env.SCANNER_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -366,35 +306,29 @@ EOFSUM
             echo "- ❌ Neural Bridge sync: **Failed**" >> $GITHUB_STEP_SUMMARY
           fi
           
-          cat >> $GITHUB_STEP_SUMMARY << 'EOFSUM'
-
-## System Status
-The autonomous cyber-organism continues to evolve and self-optimize based on real-time network intelligence.
-
----
-*Powered by Quantum VLESS v19 - Neural Bridge Edition*
-EOFSUM
-
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## System Status" >> $GITHUB_STEP_SUMMARY
+          echo "The autonomous cyber-organism continues to evolve and self-optimize based on real-time network intelligence." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Powered by Quantum VLESS v19 - Neural Bridge Edition*" >> $GITHUB_STEP_SUMMARY
+          
           echo "✅ Summary report generated"
         shell: bash
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 11: Send Telegram Notification (Optional)
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Send Telegram Notification
         if: steps.sync.outputs.sync_status == 'success'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          # Check if Telegram credentials are available
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "⚠️ Telegram credentials not configured - skipping notification"
             exit 0
           fi
           
-          message="🧬 Neural Bridge Sync Complete
-          
+          MESSAGE="🧬 Neural Bridge Sync Complete
+
 📊 Assets Found: ${{ steps.parse.outputs.asset_count }}
 ✅ Inserted: ${{ steps.sync.outputs.assets_inserted }}
 🔄 Updated: ${{ steps.sync.outputs.assets_updated }}
@@ -402,19 +336,15 @@ EOFSUM
 ⏰ Time: $(TZ='Asia/Tehran' date '+%H:%M:%S')
 
 The autonomous system continues to evolve."
-
+          
           curl -s -X POST \
-            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d "chat_id=$TELEGRAM_CHAT_ID" \
-            -d "text=$message" \
-            -d "parse_mode=HTML" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
             > /dev/null && echo "✅ Telegram notification sent" || echo "⚠️ Failed to send Telegram notification"
         shell: bash
         continue-on-error: true
       
-      # ═══════════════════════════════════════════════════════════════════════
-      # STEP 12: Cleanup
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Cleanup Artifacts
         if: always()
         run: |
