@@ -1,10 +1,4 @@
-name: Neural Bridge Scanner - Autonomous Pipeline
-# ═══════════════════════════════════════════════════════════════════════════════
-# 🧬 AUTONOMOUS CYBER-ORGANISM PIPELINE
-# ═══════════════════════════════════════════════════════════════════════════════
-# Purpose: Scan network assets and sync directly to Cloudflare D1 via secure API
-# No file storage - Direct database injection architecture
-# ═══════════════════════════════════════════════════════════════════════════════
+name: Rust Proxy Scanner
 
 on:
   workflow_dispatch:
